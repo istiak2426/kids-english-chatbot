@@ -119,20 +119,24 @@ def get_llm_stream(prompt):
     try:
         client = Groq(api_key=GROQ_API_KEY)
         completion = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model="llama3-8b-8192",  # Stable & Fast Model
             messages=[{"role": "system", "content": prompt}],
             temperature=0.5,
-            max_completion_tokens=60,
+            max_tokens=80,
             stream=True,
         )
+        got_content = False
         for chunk in completion:
             content = chunk.choices[0].delta.content
             if content:
+                got_content = True
                 yield content
+        if not got_content:
+            yield "I am thinking... Can you say that again?"
     except Exception as e:
         yield f"❌ API Error: {str(e)}"
 
-# ---------------- FALLBACK ----------------
+# ---------------- FALLBACK (no API / latency safety) ----------------
 def fallback_response(mode, level):
     if mode == "SUPPORT":
         return "It's okay to feel that way. Let's take a big breath together. In... and out. You are doing great."
@@ -216,7 +220,7 @@ if prompt := st.chat_input("Say something to Buddy..."):
         maybe_promote(profile)
 
     # add assistant message to history
-    profile["history"].append({"role": "assistant", "content": response, "mode": mode})
+    profile["history"].append({"role": "assistant", "content": str(response), "mode": mode})
 
     latency = time.time() - start
     st.caption(f"⚡ Total Response time: {latency:.2f}s")
