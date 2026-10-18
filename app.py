@@ -8,11 +8,14 @@ from groq import Groq
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="Buddy - English for Kids", page_icon="🧸", layout="centered")
 
-# API Key সিকিউরলি লোড করা হচ্ছে (কোডের ভেতরে Key নেই)
+# API Key সিকিউরলি লোড করা হচ্ছে
 try:
     GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 except Exception:
     GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+
+if not GROQ_API_KEY:
+    st.error("⚠️ DEBUG: API Key is completely missing from Secrets!")
 
 LEVELS = {
     "L1": {
@@ -111,6 +114,7 @@ RULES:
 # ---------------- LLM ----------------
 def get_llm_response(prompt):
     if not GROQ_API_KEY or "gsk_" not in GROQ_API_KEY:
+        st.error("⚠️ DEBUG: API Key is missing or invalid format (must start with gsk_).")
         return None
     try:
         client = Groq(api_key=GROQ_API_KEY)
@@ -122,7 +126,8 @@ def get_llm_response(prompt):
         )
         return resp.choices[0].message.content.strip()
     except Exception as e:
-        print(f"Groq API Error: {e}") 
+        # এই লাইনটা সরাসরি স্ক্রিনে লাল রঙে এরর দেখাবে
+        st.error(f"❌ API Error: {str(e)}") 
         return None
 
 # ---------------- FALLBACK (no API / latency safety) ----------------
