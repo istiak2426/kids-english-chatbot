@@ -1,2 +1,4 @@
 streamlit==1.40.0
 groq==0.13.0
+
+"streamlit`ngroq" | Out-File -FilePath requirements.txt -Encoding utf8
