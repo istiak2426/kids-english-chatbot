@@ -111,26 +111,28 @@ RULES:
 - End with a simple question or an invitation to speak.
 """
 
-# ---------------- LLM ----------------
-def get_llm_response(prompt):
+# ---------------- LLM (Streaming) ----------------
+def get_llm_stream(prompt):
     if not GROQ_API_KEY or "gsk_" not in GROQ_API_KEY:
-        st.error("⚠️ DEBUG: API Key is missing or invalid format (must start with gsk_).")
-        return None
+        yield "⚠️ DEBUG: API Key is missing or invalid format."
+        return
     try:
         client = Groq(api_key=GROQ_API_KEY)
-        resp = client.chat.completions.create(
-            model="openai/gpt-oss-20b",
+        completion = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
             messages=[{"role": "system", "content": prompt}],
             temperature=0.5,
-            max_tokens=60,
+            max_completion_tokens=60,
+            stream=True,
         )
-        return resp.choices[0].message.content.strip()
+        for chunk in completion:
+            content = chunk.choices[0].delta.content
+            if content:
+                yield content
     except Exception as e:
-        # এই লাইনটা সরাসরি স্ক্রিনে লাল রঙে এরর দেখাবে
-        st.error(f"❌ API Error: {str(e)}") 
-        return None
+        yield f"❌ API Error: {str(e)}"
 
-# ---------------- FALLBACK (no API / latency safety) ----------------
+# ---------------- FALLBACK ----------------
 def fallback_response(mode, level):
     if mode == "SUPPORT":
         return "It's okay to feel that way. Let's take a big breath together. In... and out. You are doing great."
@@ -199,26 +201,22 @@ if prompt := st.chat_input("Say something to Buddy..."):
     # context
     sys_prompt = build_prompt(profile, mode, sel)
 
-    # LLM
-    response = get_llm_response(sys_prompt)
+    # LLM Streaming Output
+    with st.chat_message("assistant"):
+        response = st.write_stream(get_llm_stream(sys_prompt))
 
-    # fallback if LLM failed or missing key
-    if not response:
-        response = fallback_response(mode, profile["level"])
-
-    # output safety
-    if not is_safe(response):
+    # Output safety check
+    if not is_safe(str(response)):
         response = SAFE_FALLBACKS[0]
+        st.warning(response)
 
     # progress tracking (only in learning mode)
     if mode == "LEARNING":
         record_progress(prompt, profile)
         maybe_promote(profile)
 
-    # add assistant message
+    # add assistant message to history
     profile["history"].append({"role": "assistant", "content": response, "mode": mode})
-    with st.chat_message("assistant"):
-        st.write(response)
 
     latency = time.time() - start
-    st.caption(f"⚡ Response time: {latency:.2f}s")
+    st.caption(f"⚡ Total Response time: {latency:.2f}s")
