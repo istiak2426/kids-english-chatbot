@@ -111,7 +111,7 @@ RULES:
 - End with a simple question or an invitation to speak.
 """
 
-# ---------------- LLM (Streaming) ----------------
+# ---------------- LLM (Streaming with gemma2-9b-it) ----------------
 def get_llm_stream(prompt):
     if not GROQ_API_KEY or "gsk_" not in GROQ_API_KEY:
         yield "⚠️ DEBUG: API Key is missing or invalid format."
@@ -119,7 +119,7 @@ def get_llm_stream(prompt):
     try:
         client = Groq(api_key=GROQ_API_KEY)
         completion = client.chat.completions.create(
-            model="llama3-8b-8192",  # Stable & Fast Model
+            model="gemma2-9b-it",  # Stable, fast non-reasoning model
             messages=[{"role": "system", "content": prompt}],
             temperature=0.5,
             max_tokens=80,
@@ -136,7 +136,7 @@ def get_llm_stream(prompt):
     except Exception as e:
         yield f"❌ API Error: {str(e)}"
 
-# ---------------- FALLBACK (no API / latency safety) ----------------
+# ---------------- FALLBACK ----------------
 def fallback_response(mode, level):
     if mode == "SUPPORT":
         return "It's okay to feel that way. Let's take a big breath together. In... and out. You are doing great."
