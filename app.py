@@ -119,7 +119,7 @@ def get_llm_response(prompt):
     try:
         client = Groq(api_key=GROQ_API_KEY)
         resp = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="openai/gpt-oss-20b",
             messages=[{"role": "system", "content": prompt}],
             temperature=0.5,
             max_tokens=60,
